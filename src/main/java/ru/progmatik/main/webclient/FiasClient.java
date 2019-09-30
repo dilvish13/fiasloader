@@ -6,26 +6,19 @@ import fias.wsdl.GetAllDownloadFileInfoResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.ws.WebServiceMessage;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.client.core.support.WebServiceGatewaySupport;
-import org.springframework.ws.soap.SoapMessage;
 import org.springframework.ws.soap.client.core.SoapActionCallback;
 import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
 import org.springframework.ws.transport.WebServiceMessageSender;
-import org.springframework.ws.transport.http.HttpComponentsMessageSender;
 import org.springframework.ws.transport.http.HttpUrlConnectionMessageSender;
 
 import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPConstants;
 import javax.xml.soap.SOAPException;
-import javax.xml.ws.handler.MessageContext;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 
 import static ru.progmatik.main.other.UtilClass.checkUrlFoRedirect;
 
@@ -46,11 +39,9 @@ public class FiasClient extends WebServiceGatewaySupport {
 
     public List<DownloadFileInfo> getAllDownloadFileList() throws SOAPException, IOException {
 
-
         LOGGER.info("Requesting FIAS files list");
 
         GetAllDownloadFileInfo request = new GetAllDownloadFileInfo();
-
 
         MessageFactory msgFactory = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL);
         SaajSoapMessageFactory saajSoapMessageFactory = new SaajSoapMessageFactory(msgFactory);
@@ -94,7 +85,6 @@ public class FiasClient extends WebServiceGatewaySupport {
 //                            }
 //                        }
                         );
-
 
         return response.getGetAllDownloadFileInfoResult().getDownloadFileInfo();
     }

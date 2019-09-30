@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.springframework.ws.transport.http.HttpComponentsMessageSender;
@@ -16,6 +17,7 @@ import ru.progmatik.main.messagehandler.DefaultHandlerResolver;
 import ru.progmatik.main.webclient.FiasClient;
 
 import javax.net.ssl.SSLContext;
+import javax.persistence.EntityManagerFactory;
 import javax.xml.ws.handler.Handler;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +26,7 @@ import java.util.List;
  * класс конфигурации для бинов маршаллинга
  */
 @Configuration
+@EnableJpaRepositories("ru.progmatik.main.export.repository")
 public class FiasConfiguration {
 
     @Value("${client.default-uri}")
@@ -77,7 +80,6 @@ public class FiasConfiguration {
 //        return SSLContextBuilder.create()
 //                .loadTrustMaterial(trustStore.getFile(), trustStorePassword.toCharArray()).build();
 //    }
-
 
     public DefaultHandlerResolver handlerResolver(){
         final DefaultHandlerResolver defaultHandlerResolver = new DefaultHandlerResolver();

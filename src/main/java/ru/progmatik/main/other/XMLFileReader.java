@@ -2,8 +2,11 @@ package ru.progmatik.main.other;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import ru.fias.Object;
 import ru.fias.House;
+import ru.fias.ObjectGuid;
+import ru.fias.Socr;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -18,6 +21,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * ридер для больших XML-файлов.
@@ -63,7 +69,9 @@ public class XMLFileReader implements AutoCloseable {
         // указатель на текущую ноду
         Object addrObj = null;
         // счетчик чтений
-        int count = 0;
+        int countR = 0;
+        // счетчик записей
+        int countW = 0;
 
         // если в ридере еще есть что читать
         while (xmlStreamReader.hasNext()) {
@@ -77,10 +85,18 @@ public class XMLFileReader implements AutoCloseable {
                     // создаем объект тип LocalNode
                     addrObj = (Object) jaxbUnmarshaller.unmarshal(xmlStreamReader);
                     // добавляем в лист ноду
-                    addrObjList.add(addrObj);
-                    // инкрементируем счетчик
-                    count++;
-                    if(count%arraySize == 0){
+                    // Только с ACTSTATUS=1 и AOLEVEL <= 6
+                    if (Optional.ofNullable(addrObj)
+                            .filter(o -> "1".equals(String.valueOf(o.getACTSTATUS())))
+                            .filter(o -> o.getAOLEVEL().intValue() <= 6)
+                            .isPresent()) {
+                        addrObjList.add(addrObj);
+                        // инкрементируем счетчик
+                        countW++;
+                    }
+                    countR++;
+                    if(countW > 0 && countW%arraySize == 0){
+                        logger.info(String.format("Parced %s, imported %s records.", countR, countW));
                         return addrObjList;
                     }
                 }
@@ -96,6 +112,63 @@ public class XMLFileReader implements AutoCloseable {
         return addrObjList;
     }
 
+
+    /**
+     * метод читает из открытого в конструкторе потока заданное число объектов класса ObjectGuid
+     * @param arraySize
+     * @param elementName имя элемента в XML
+     * @return
+     * @throws XMLStreamException
+     * @throws JAXBException
+     */
+    public List<ObjectGuid> readObjectGuidFromStream(int arraySize, String elementName) throws XMLStreamException, JAXBException {
+        if(xmlStreamReader == null || !xmlStreamReader.hasNext()){
+            return null;
+        }
+        // лист для результата
+        List<ObjectGuid> guidList = new ArrayList<>();
+        // указатель на текущую ноду
+        ObjectGuid guid = null;
+        // счетчик чтений
+        int countR = 0;
+        // счетчик записей
+        int countW = 0;
+        // если в ридере еще есть что читать
+        while (xmlStreamReader.hasNext()) {
+            try {
+                // если элемент стартовый и его имя node
+                if (!(xmlStreamReader.isStartElement() &&
+                        xmlStreamReader.getLocalName().equalsIgnoreCase(elementName))) {
+                    // читаем следующий
+                    xmlStreamReader.next();
+                }else{
+                    // создаем объект тип LocalNode
+                    guid = (ObjectGuid) jaxbUnmarshaller.unmarshal(xmlStreamReader);
+                    // добавляем в лист ноду
+                    // Только с AOID, GUID
+                    if(guid != null && !isEmpty(guid.getAOID()) && !isEmpty(guid.getAOGUID())) {
+                        guidList.add(guid);
+                        // инкрементируем счетчик
+                        countW++;
+                    }
+                    countR++;
+                    if(countW > 0 && countW%arraySize == 0){
+                        logger.info(String.format("Parced %s, imported %s records.", countR, countW));
+                        return guidList;
+                    }
+                }
+                // если достигли установленного размера - возвращаем лист
+            } catch (XMLStreamException e1) {
+                logger.error("Read object GUID list from XMLstream error", e1);
+                e1.printStackTrace();
+            }
+        }
+        // закрываем ридер, если больше нечего читать
+        xmlStreamReader.close();
+        // возвращаем лист с остатком
+        return guidList;
+    }
+
     /**
      * метод читает из открытого в конструкторе потока заданное число объектов класса House
      * @param arraySize
@@ -104,18 +177,15 @@ public class XMLFileReader implements AutoCloseable {
      * @throws JAXBException
      */
     public List<House> readHousesFromStream(int arraySize, final String logFIAS) throws XMLStreamException, JAXBException {
-
         if(xmlStreamReader == null || !xmlStreamReader.hasNext()){
             return null;
         }
-
         // лист для результата
         List<House> houseList = new ArrayList<>();
         // указатель на текущую ноду
         House house = null;
         // счетчик чтений
         int count = 0;
-
         BigInteger zeroBigInt = BigInteger.valueOf(0);
         // если в ридере еще есть что читать
         while (xmlStreamReader.hasNext()) {
@@ -178,5 +248,62 @@ public class XMLFileReader implements AutoCloseable {
 
     public List<House> readHousesFromStream(int batch_size) throws JAXBException, XMLStreamException {
         return readHousesFromStream(batch_size, null);
+    }
+
+    /**
+     * метод читает из открытого в конструкторе потока заданное число объектов класса Socr
+     * @param arraySize
+     * @return
+     * @throws XMLStreamException
+     * @throws JAXBException
+     */
+    public List<Socr> readSocrFromStream(int arraySize, final String logFIAS) throws XMLStreamException, JAXBException {
+
+        if(xmlStreamReader == null || !xmlStreamReader.hasNext()){
+            return null;
+        }
+        // лист для результата
+        List<Socr> socrList = new ArrayList<>();
+        // указатель на текущую ноду
+        Socr socr = null;
+        // счетчик чтений
+        int count = 0;
+        // если в ридере еще есть что читать
+        while (xmlStreamReader.hasNext()) {
+            try {
+                // если элемент стартовый и его имя node
+                if (!(xmlStreamReader.isStartElement() &&
+                        xmlStreamReader.getLocalName().equalsIgnoreCase("AddressObjectType"))) {
+                    // читаем следующий
+                    xmlStreamReader.next();
+                }else{
+                    // создаем объект тип LocalNode
+                    socr = (Socr) jaxbUnmarshaller.unmarshal(xmlStreamReader);
+                    count++;
+                    if(logFIAS == null || logFIAS.isEmpty()) {
+                        if (!"".equals(socr.getSCNAME())) {
+                            // добавляем в лист ноду
+                            socrList.add(socr);
+                        }
+                    }
+
+                    if (count % arraySize == 0) {
+                        return socrList;
+                    }
+                }
+                // если достигли установленного размера - возвращаем лист
+            } catch (XMLStreamException e1) {
+                logger.error("Read socr from XMLstream error", e1);
+                e1.printStackTrace();
+            }
+        }
+        // закрываем ридер, если больше нечего читать
+        xmlStreamReader.close();
+        // возвращаем лист с остатком
+        return socrList;
+    }
+
+    public List<Socr> readSocrFromStream(int batch_size) throws JAXBException, XMLStreamException {
+        return readSocrFromStream(batch_size, null);
     }
 }

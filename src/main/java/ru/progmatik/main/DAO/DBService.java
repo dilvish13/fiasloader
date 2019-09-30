@@ -22,25 +22,22 @@ public class DBService {
     private static Connection connection;
     private static Properties props;
 
-    @Value("${archDir:}")
-    String archDir;
-
-    @Value("${driver:org.firebirdsql.jdbc.FBDriver}")
+    @Value("${spring.datasource.driver:org.firebirdsql.jdbc.FBDriver}")
     String driver;
 
-    @Value("${databaseurl}")
+    @Value("${spring.datasource.url}")
     String databaseurl;
 
-    @Value("${dbuser:SYSDBA}")
+    @Value("${spring.datasource.userName:SYSDBA}")
     String user;
 
-    @Value("${password:masterkey}")
+    @Value("${spring.datasource.password:masterkey}")
     String password;
 
-    @Value("${role:}")
+    @Value("${spring.datasource.role:}")
     String role;
 
-    @Value("${encoding:WIN1251}")
+    @Value("${spring.datasource.encoding:WIN1251}")
     String encoding;
 
 //    public static DBService instance() throws ClassNotFoundException, SQLException, InstantiationException, IllegalAccessException {
@@ -50,7 +47,7 @@ public class DBService {
 //        return dbService;
 //    }
 //    private DBService() throws ClassNotFoundException, IllegalAccessException, InstantiationException, SQLException {
-//        DriverManager.registerDriver((Driver) Class.forName(driver).newInstance());
+//        DriverManager.registerDriver((Driver) Class.forName(db).newInstance());
 //        props = new Properties();
 //
 //        props.setProperty("userName", username);
@@ -66,13 +63,6 @@ public class DBService {
     public Connection getConnection() throws SQLException, ClassNotFoundException, IllegalAccessException, InstantiationException {
         if(connection == null || connection.isClosed()) {
             DriverManager.registerDriver((Driver) Class.forName(driver).newInstance());
-
-//            log.info("driver:" + driver);
-//            log.info("databaseurl:" + databaseurl);
-//            log.info("dbuser:" + dbuser);
-//            log.info("password:" + password);
-//            log.info("role:" + role);
-
             props = new Properties();
 
             if(!user.isEmpty()) props.setProperty("user", user);
@@ -81,7 +71,6 @@ public class DBService {
             if(!encoding.isEmpty()) props.setProperty("encoding", encoding);
 
             connection = DriverManager.getConnection(databaseurl, props);
-//            connection = DriverManager.getConnection("jdbc:firebirdsql:172.16.0.18:/home/bek/fias2.fdb", props);
         }
         return connection;
     }

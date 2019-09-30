@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import ru.progmatik.main.webclient.FiasClient;
 import ru.progmatik.main.other.UtilClass;
 
@@ -21,62 +22,77 @@ import java.util.stream.Collectors;
  * решает какие надо скачать и скачивает их
  */
 @Service
-public class DownloadFilesSheduler {
+public class DownloadFilesScheduler {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
     private FiasClient fiasClient;
 
-    @Value("${archDir:archive}")
-    String archDir;
+    @Value("${work.archDir:archive}")
+    private String archDir;
 
-    @Value("${workDir:work}")
-    String workDir;
+    @Value("${download.dir}")
+    private String downloadDir;
+    @Value("${work.dir:work}")
+    private String workDir;
+
+    @Value("${download.tmp:tmp}")
+    private String tmpDir;
+
+    @Value("${download.need:true}")
+    private Boolean needDownload;
 
     private List<DownloadFileInfo> fiasFilesList = new ArrayList<>();
     private Map<Integer,File> archFilesMap = new HashMap<>();
     private Map<Integer,File> workFilesMap = new HashMap<>();
 
-    @Scheduled(fixedRateString = "${downloadperiod:3600000}") // every hour
+    @Scheduled(fixedRateString = "${download.period:3600000}") // every hour
     public void checkAndGetFiasFiles() throws SOAPException, IOException {
-
-        if (fiasFilesList != null){
-            fiasFilesList.clear();
+        if (StringUtils.isEmpty(downloadDir)) {
+            downloadDir = workDir;
         }
+        if (needDownload) {
 
-        fiasFilesList = fiasClient.getAllDownloadFileList();
+            logger.info(String.format("Start downloading (tmpDir=%s, archDir=%s, downloadDir=%s, needDownload=%s)",
+                    tmpDir, archDir, downloadDir, needDownload));
+            if (fiasFilesList != null) {
+                fiasFilesList.clear();
+            }
 
-        if(fiasFilesList == null || fiasFilesList.isEmpty()){
-            logger.error("Empty fias files list!");
-            return;
+            fiasFilesList = fiasClient.getAllDownloadFileList();
+
+            if (fiasFilesList == null || fiasFilesList.isEmpty()) {
+                logger.error("Empty fias files list!");
+                return;
+            }
+
+            Map<Integer, String> filesMapForDownload = getFileMapForDownload();
+
+            // если список на скачивание непустой - запускаем скачивание
+            downloadFiles(filesMapForDownload, tmpDir);
         }
-
-        Map<Integer,String> filesMapForDownload = getFileMapForDownload();
-
-        // если список на скачивание непустой - запускаем скачивание
-        downloadFiles(filesMapForDownload);
     }
 
-    private void downloadFiles(Map<Integer, String> filesMapForDownload) {
+    private void downloadFiles(Map<Integer, String> filesMapForDownload, String tempFolder) {
         // run by sorted list of versions
         logger.info(String.format("Start downloading %d file(s)", filesMapForDownload.size()));
 
         for (Integer versionId : filesMapForDownload.keySet().stream().sorted().collect(Collectors.toList())) {
             String url = filesMapForDownload.get(versionId);
 
-            File tmpDir = new File("tmp");
-            if(!tmpDir.exists()){
+            File tmpDir = new File(tempFolder);
+            if (!tmpDir.exists()) {
                 tmpDir.mkdir();
             }
 
-            String tmpfilename =  "tmp" + File.separatorChar + versionId.toString() + ".rar";
+            String tmpfilename = tempFolder + File.separatorChar + versionId.toString() + ".rar";
 
             try {
                 logger.info(String.format("Download file %s ...", tmpfilename));
                 UtilClass.downLoadFileFromURL(tmpfilename, url);
                 File tmpFile = new File(tmpfilename);
-                if(tmpFile.exists()) {
-                    tmpFile.renameTo(new File(workDir + File.separatorChar + tmpFile.getName()));
+                if (tmpFile.exists()) {
+                    tmpFile.renameTo(new File(downloadDir + File.separatorChar + tmpFile.getName()));
                 }
             } catch (IOException e) {
                 logger.error("Exception while downloading file " + url);

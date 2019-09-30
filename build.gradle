@@ -7,25 +7,29 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:2.0.3.RELEASE")
+        classpath("com.oracle.ojdbc:ojdbc8:19.3.0.0")
     }
 }
 
 group 'ru.progmatik'
-version '1.0-SNAPSHOT'
+version '0.3.0'
 
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
-//bootJar {
-//    baseName = 'fiasloader'
-//    version =  '0.0.2'
-//}
-
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+sourceSets {
+    main {
+        resources {
+            srcDirs = [rootDir, "${rootDir}/src/main/resources"]
+            includes = ["README.md", "*.ico", "*.yml", "*.txt"]
+        }
+    }
+}
 repositories {
     mavenCentral()
 }
@@ -69,26 +73,25 @@ task genJaxb {
 }
 // end::wsdl[]
 
-
 dependencies {
     compileOnly "org.projectlombok:lombok:1.16.16"
 
-    compile 'org.postgresql:postgresql:42.2.2'
-
-    compile("org.springframework.boot:spring-boot-starter")
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.springframework.boot:spring-boot-starter-data-jpa")
 
     // https://mvnrepository.com/artifact/com.github.junrar/junrar
-    compile group: 'com.github.junrar', name: 'junrar', version: '2.0.0'
+    compile group: 'com.github.junrar', name: 'junrar', version: '4.0.0'
 
+    compile ("org.postgresql:postgresql:42.2.2")
     compile ("org.firebirdsql.jdbc:jaybird-jdk18:3.0.4")
+    compile ("com.oracle.ojdbc:ojdbc8:19.3.0.0")
 
     compile("org.springframework.ws:spring-ws-core")
 
     compile(files(genJaxb.classesDir).builtBy(genJaxb))
 
 // https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient
-    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.6'
-
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.8'
 
     jaxb "com.sun.xml.bind:jaxb-xjc:2.1.7"
 
@@ -97,7 +100,7 @@ dependencies {
 
 bootJar {
     baseName = 'fiasloader'
-    version =  '0.2.3'
+    version =  '0.3.0'
 
     from genJaxb.classesDir
 }

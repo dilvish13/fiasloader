@@ -12,6 +12,7 @@ import java.util.List;
 /**
  * test class for manually search house in file by FIAS
  */
+@Deprecated
 public class SearchHouseFias {
     public static void main(String[] args) throws Exception {
         if(args.length < 2 || args[0] == null || args[0].isEmpty() || args[1] == null || args[1].isEmpty()){
@@ -21,7 +22,6 @@ public class SearchHouseFias {
 
         String fiasFileName = args[0];
         String fiasForSearch = args[1];
-
 
         File fiasFile = new File(fiasFileName);
 
